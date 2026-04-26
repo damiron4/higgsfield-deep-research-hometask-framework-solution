@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import os
 import time
 import uuid
 from pathlib import Path
@@ -25,17 +26,14 @@ _TRACES_DIR = Path(__file__).parent.parent / "traces"
 _TRACES_DIR.mkdir(exist_ok=True)
 
 _RETRYABLE_STATUS = {429, 500, 502, 503, 504}
-_MAX_RETRIES = 4
-_BASE_BACKOFF = 1.0  # seconds
-
+MAX_RETRIES = int(os.getenv("MAX_RETRIES", 5))
+BASE_BACKOFF = float(os.getenv("BASE_BACKOFF", 3.0))  # seconds
 
 def _is_retryable(exc: Exception) -> bool:
     """Return True for transient API errors that warrant a retry."""
-    # anthropic SDK wraps HTTP errors; check the status attribute if present.
     status = getattr(exc, "status_code", None)
     if status in _RETRYABLE_STATUS:
         return True
-    # httpx network errors
     if isinstance(exc, (httpx.ConnectError, httpx.ReadTimeout, httpx.WriteTimeout)):
         return True
     return False
@@ -50,13 +48,21 @@ def _run_agent_sync(question: str, model: str) -> dict[str, Any]:
 
 
 async def _run_with_retry(question: str, model: str, loop: asyncio.AbstractEventLoop) -> dict[str, Any]:
-    for attempt in range(_MAX_RETRIES + 1):
+    for attempt in range(MAX_RETRIES + 1):
         try:
             trace = await loop.run_in_executor(None, _run_agent_sync, question, model)
+            # The agent may catch its own API errors and return stopped_reason=error
+            # instead of raising. Any error trace is retryable — it produced no answer.
+            if attempt < MAX_RETRIES and trace.get("stopped_reason") == "error":
+                wait = BASE_BACKOFF * (2 ** attempt)
+                print(f"  [RETRY {attempt+1}/{MAX_RETRIES}] agent error: {str(trace.get('error',''))[:80]} — retrying in {wait:.0f}s")
+                await asyncio.sleep(wait)
+                continue
             return trace
         except Exception as exc:
-            if attempt < _MAX_RETRIES and _is_retryable(exc):
-                wait = _BASE_BACKOFF * (2 ** attempt)
+            if attempt < MAX_RETRIES and _is_retryable(exc):
+                wait = BASE_BACKOFF * (2 ** attempt)
+                print(f"  [RETRY {attempt+1}/{MAX_RETRIES}] {type(exc).__name__} — retrying in {wait:.0f}s")
                 await asyncio.sleep(wait)
                 continue
             raise

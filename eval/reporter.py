@@ -70,6 +70,13 @@ def build_report(
         mean_tool_calls=statistics.mean(tool_counts) if tool_counts else 0.0,
     )
 
+    # Flag flaky cases
+    for s in summaries:
+        if s.is_flaky:
+            report.flaky.append(
+                f"{s.case_id}: {s.passes}/{s.total_repeats} passed"
+            )
+
     # Diff against previous run if one exists.
     if _LATEST_POINTER.exists():
         try:
@@ -119,6 +126,11 @@ def print_report(report: RunReport) -> None:
         print("\n  ** Improvements **")
         for i in report.improvements:
             print(f"     {i}")
+
+    if report.flaky:
+        print("\n  ~~ FLAKY (passed on some repeats but not all) ~~")
+        for f in report.flaky:
+            print(f"     {f}")
 
     print(f"\n  Pass rate : {report.pass_rate:.1%}  ({sum(s.passes for s in report.summaries)}/{sum(s.total_repeats for s in report.summaries)})")
     print(f"  Cost      : ${report.total_cost_usd:.4f}")

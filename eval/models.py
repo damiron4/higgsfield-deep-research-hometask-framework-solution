@@ -120,10 +120,18 @@ class CaseSummary:
     def pass_rate(self) -> float:
         return self.passes / self.total_repeats if self.total_repeats else 0.0
 
+    @property
+    def is_flaky(self) -> bool:
+        return self.total_repeats > 1 and 0 < self.passes < self.total_repeats
+
     def label(self) -> str:
         if self.total_repeats == 1:
             return "PASS" if self.passes == 1 else "FAIL"
-        return f"{self.passes}/{self.total_repeats} passed"
+        if self.passes == self.total_repeats:
+            return f"PASS ({self.passes}/{self.total_repeats})"
+        if self.passes == 0:
+            return f"FAIL ({self.passes}/{self.total_repeats})"
+        return f"FLAKY ({self.passes}/{self.total_repeats})"
 
 
 @dataclass
@@ -142,6 +150,7 @@ class RunReport:
     previous_run_id: str | None = None
     regressions: list[str] = field(default_factory=list)
     improvements: list[str] = field(default_factory=list)
+    flaky: list[str] = field(default_factory=list)
 
     @property
     def pass_rate(self) -> float:
@@ -164,6 +173,8 @@ class RunReport:
             "previous_run_id": self.previous_run_id,
             "regressions": self.regressions,
             "improvements": self.improvements,
+            "flaky": self.flaky,
+            "trace_ids": [r.run_id for r in self.all_results],
             "cases": [
                 {
                     "case_id": s.case_id,

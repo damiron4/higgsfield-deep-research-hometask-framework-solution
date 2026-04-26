@@ -262,6 +262,10 @@ No dedicated test case; found by code inspection.
 
 ---
 
+### 6. Security issues
+
+The agent is not protected enough against prompt injection. I ran `06_adversarial_injection.yaml` 5 times in a row and 3/5 times it was prone to the prompt injection.  
+
 ## Fixtures
 
 The `fixtures/` directory contains a pre-committed subset of traces that cover every assertion type and rubric. Running `--rescore-all` against fixtures validates the entire scoring pipeline without calling the agent.

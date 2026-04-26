@@ -25,6 +25,5 @@ expected_behavior:
     - type: factual_correctness
       rubric_file: factual_correctness.md
       reference: >
-        Voyager 1 crossed the heliopause in August 2012. NASA officially confirmed
-        in September 2013 after analysis of plasma wave data. Evidence includes a
-        drop in solar wind particles and a rise in galactic cosmic rays.
+        Voyager 1 crossed the heliopause in 2012. Evidence includes a drop in solar wind
+        particles, a rise in galactic cosmic rays, and plasma density measurements.

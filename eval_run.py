@@ -71,40 +71,87 @@ def _load_cases(path: Path) -> list[TestCase]:
     return cases
 
 
-def _rescore_all(cases_path: Path, model: str, no_html: bool) -> None:
-    """Re-score all traces in traces/ matched to cases by question text."""
+async def _rescore_one(
+    tf: Path,
+    by_question: dict,
+    semaphore: asyncio.Semaphore,
+    loop: asyncio.AbstractEventLoop,
+) -> tuple | None:
+    """Score a single trace file; returns (CaseResult, case_id) or None if unmatched."""
     from eval.scorer import score_trace
+
+    trace = json.loads(tf.read_text())
+    question = (trace.get("question") or "").strip()
+    case = by_question.get(question)
+    if case is None:
+        return None
+
+    async with semaphore:
+        result = await loop.run_in_executor(None, score_trace, trace, case, tf)
+
+    status = "PASS" if result.passed else "FAIL"
+    print(f"  [{status}] {case.id}")
+    if not result.passed:
+        for reason in result.failure_reasons():
+            print(f"         {reason}")
+    return result
+
+
+def _rescore_all(cases_path: Path, model: str, no_html: bool, concurrency: int) -> None:
+    """Re-score traces from the latest run in traces/.
+
+    Reads the latest run's trace_ids from reports/latest.json so that traces
+    accumulated from older runs are not mixed in. Falls back to all traces in
+    traces/ if no latest report exists (e.g. first run or fixtures workflow).
+    """
     from eval.models import CaseResult
+    from eval.reporter import _LATEST_POINTER
 
     cases = _load_cases(cases_path)
-    # Build a lookup: question text -> TestCase
     by_question = {c.input.strip(): c for c in cases}
 
     traces_dir = Path("traces")
-    trace_files = list(traces_dir.glob("*.json"))
+
+    # Determine which trace files to rescore.
+    allowed_ids: set[str] | None = None
+    if _LATEST_POINTER.exists():
+        try:
+            latest = json.loads(_LATEST_POINTER.read_text())
+            ids = latest.get("trace_ids")
+            if ids:
+                allowed_ids = set(ids)
+        except Exception:
+            pass
+
+    if allowed_ids is not None:
+        trace_files = [traces_dir / f"{tid}.json" for tid in allowed_ids
+                       if (traces_dir / f"{tid}.json").exists()]
+    else:
+        trace_files = list(traces_dir.glob("*.json"))
+
     if not trace_files:
         print("No traces found in traces/")
         sys.exit(1)
 
-    results: list[CaseResult] = []
-    unmatched = []
-    for tf in trace_files:
-        trace = json.loads(tf.read_text())
-        question = (trace.get("question") or "").strip()
-        case = by_question.get(question)
-        if case is None:
-            unmatched.append(tf.name)
-            continue
-        result = score_trace(trace, case, tf)
-        status = "PASS" if result.passed else "FAIL"
-        print(f"  [{status}] {case.id}")
-        if not result.passed:
-            for reason in result.failure_reasons():
-                print(f"         {reason}")
-        results.append(result)
+    print(f"\nRescoring {len(trace_files)} trace(s)  [concurrency={concurrency}]\n")
 
-    if unmatched:
-        print(f"\n  Skipped {len(unmatched)} traces with no matching case.")
+    async def _run_all() -> list[CaseResult]:
+        semaphore = asyncio.Semaphore(concurrency)
+        loop = asyncio.get_event_loop()
+        tasks = [_rescore_one(tf, by_question, semaphore, loop) for tf in trace_files]
+        scored: list[CaseResult] = []
+        unmatched_count = 0
+        for coro in asyncio.as_completed(tasks):
+            item = await coro
+            if item is None:
+                unmatched_count += 1
+            else:
+                scored.append(item)
+        if unmatched_count:
+            print(f"\n  Skipped {unmatched_count} trace(s) with no matching case.")
+        return scored
+
+    results = asyncio.run(_run_all())
 
     if not results:
         print("No traces matched any case.")
@@ -185,7 +232,7 @@ def main() -> None:
 
     # Re-score all mode — no agent calls.
     if args.rescore_all:
-        _rescore_all(args.cases, model=args.model, no_html=args.no_html)
+        _rescore_all(args.cases, model=args.model, no_html=args.no_html, concurrency=args.concurrency)
         return
 
     # Re-score single trace mode — no agent calls.
