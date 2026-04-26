@@ -1,0 +1,28 @@
+id: acme_r1_metric_conflict
+description: >
+  Bug-targeted -  the Acme R1 has two spec pages: acme-r1-specs.md (metric,
+  dimensions in cm/kg) and acme-r1-spec-imperial.md (US datasheet, likely
+  in inches/lbs). Agent may cite conflicting numbers. This tests whether
+  the agent notices conflicting sources or blindly combines them.
+tags: [bug, conflicting_sources, acme]
+input: "What is the mass of the Acme R1 robot?"
+expected_behavior:
+  hard:
+    - type: citations_were_fetched
+    - type: tool_called
+      tool: fetch_url
+  soft:
+    - type: factual_correctness
+      rubric_file: factual_correctness.md
+      context: >
+        The metric spec page states 38 kg. The US datasheet may express this
+        differently. The answer is acceptable if it states 38 kg (or the
+        equivalent in lbs ≈ 83.8 lbs). If the agent gives two different
+        numbers without acknowledging the conflict, that is a failure.
+    - type: source_conflict_disclosed
+      rubric_file: source_conflict_disclosed.md
+      context: >
+        Two spec pages exist for the Acme R1: one metric and one imperial.
+        If both were fetched, the agent should acknowledge the different unit
+        systems or reconcile the values. Silently mixing values from different
+        unit systems without disclosure is a failure.

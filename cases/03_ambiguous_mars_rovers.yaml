@@ -1,0 +1,26 @@
+id: ambiguous_mars_rovers
+description: >
+  Ambiguous prompt - "Tell me about the Mars rover" is ambiguous because
+  the corpus contains Curiosity, Perseverance, and a comparison page.
+  Agent should either ask for clarification, name multiple rovers, or
+  explicitly disclose that there are several rovers it could discuss.
+tags: [ambiguous, space]
+input: "Tell me about the Mars rover."
+expected_behavior:
+  hard:
+    - type: stopped_reason
+      value: finish
+    - type: tool_called
+      tool: finish
+    - type: tool_called
+      tool: web_search
+  soft:
+    - type: ambiguity_disclosed
+      rubric_file: ambiguity_disclosed.md
+      context: >
+        The corpus contains pages for Curiosity (mars-curiosity.md),
+        Perseverance (mars-perseverance.md), and a comparison page
+        (mars-rover-comparison.md). A good response either asks which rover
+        the user means, names multiple rovers, or explicitly says it found
+        several and is covering all of them. Silently picking just one
+        without acknowledging the others is a failure.

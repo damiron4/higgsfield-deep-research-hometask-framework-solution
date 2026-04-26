@@ -1,0 +1,33 @@
+id: corpus_factual_error_curiosity_power
+description: >
+  Bug-targeted - mars-rover-comparison.md contains a factual error: it lists
+  both Curiosity and Perseverance as using "Solar panels". In reality, Curiosity
+  uses a Multi-Mission Radioisotope Thermoelectric Generator (MMRTG/RTG), not
+  solar panels. If the agent fetches only the comparison page and trusts it
+  without cross-checking, it will report wrong information.
+  Tests whether extract_quotes + the agent blindly propagate corpus errors.
+tags: [bug, hallucinated_quotes, space]
+input: "What power source does the Curiosity rover use on Mars?"
+expected_behavior:
+  hard:
+    - type: stopped_reason
+      value: finish
+    - type: tool_called
+      tool: finish
+    - type: tool_called
+      tool: web_search
+    - type: tool_called
+      tool: fetch_url
+    - type: citations_were_fetched
+  soft:
+    - type: factual_correctness
+      rubric_file: factual_correctness.md
+      reference: >
+        Curiosity uses a Multi-Mission Radioisotope Thermoelectric Generator
+        (MMRTG), also called an RTG or nuclear power source. It does NOT use
+        solar panels.
+      context: >
+        A corpus page incorrectly lists Curiosity as using solar panels.
+        FAIL if the agent repeats that error. PASS if the answer says RTG,
+        nuclear, or radioisotope. Also PASS if the agent says it could not
+        find the power source — that means it avoided propagating the error.

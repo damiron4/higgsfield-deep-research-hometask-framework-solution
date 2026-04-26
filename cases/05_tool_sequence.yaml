@@ -1,0 +1,25 @@
+id: tool_sequence_acme_r1
+description: >
+  Tool sequence assertion - agent must search, then fetch, then finish
+  in that order (as a subsequence). Tests that the agent follows the
+  system-prompt rule "Search before you fetch. Fetch before you answer."
+tags: [tool_sequence, acme]
+input: "What is the maximum payload capacity of the Acme R1 robot arm?"
+expected_behavior:
+  hard:
+    - type: stopped_reason
+      value: finish
+    - type: tool_called
+      tool: finish
+    - type: tool_sequence
+      sequence: [web_search, fetch_url, finish]
+    - type: citations_were_fetched
+    - type: answer_contains
+      substring: "5"
+    - type: search_before_fetch
+  soft:
+    - type: factual_correctness
+      rubric_file: factual_correctness.md
+      context: >
+        The Acme R1 arm has a maximum payload of 5 kg, per the technical
+        specifications page. The answer must state this number.

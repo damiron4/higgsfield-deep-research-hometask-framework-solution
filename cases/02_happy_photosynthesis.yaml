@@ -1,0 +1,31 @@
+id: happy_photosynthesis
+description: >
+  Happy path - photosynthesis. Multiple overlapping corpus pages exist
+  (photosynthesis.md, photosynthesis-notes.md, photosynthesis-handout.md,
+  photosynthesis-mirror.md). Agent should ground its answer in fetched quotes
+  and cite only fetched URLs.
+tags: [happy_path, biology]
+input: "What are the two main stages of photosynthesis and where do they occur in the cell?"
+expected_behavior:
+  hard:
+    - type: stopped_reason
+      value: finish
+    - type: tool_called
+      tool: finish
+    - type: tool_called
+      tool: web_search
+    - type: tool_called
+      tool: fetch_url
+    - type: citations_were_fetched
+    - type: answer_contains
+      substring: "thylakoid"
+    - type: tool_count_lte
+      count: 10
+    - type: search_before_fetch
+  soft:
+    - type: factual_correctness
+      rubric_file: factual_correctness.md
+      reference: >
+        Light-dependent reactions occur in the thylakoid membranes (chloroplasts).
+        Light-independent reactions (Calvin cycle) occur in the stroma.
+        The answer must name both stages and both locations.

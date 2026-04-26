@@ -1,0 +1,33 @@
+id: extract_quotes_misleading
+description: >
+  Bug-targeted - heliopause-explainer.md contains a note that reads "some older
+  sources incorrectly state that Voyager 1 crossed the heliopause in September
+  2013". If extract_quotes pulls this sentence without its corrective framing,
+  the agent may cite September 2013 as the actual crossing date instead of
+  August 2012. Tests whether the agent reads extracted quotes in context rather
+  than treating them as facts.
+tags: [bug, extract_quotes, space]
+input: "When did Voyager 1 first enter interstellar space, and when did NASA officially confirm it?"
+expected_behavior:
+  hard:
+    - type: stopped_reason
+      value: finish
+    - type: tool_called
+      tool: web_search
+    - type: tool_called
+      tool: fetch_url
+    - type: tool_called
+      tool: finish
+    - type: citations_were_fetched
+  soft:
+    - type: factual_correctness
+      rubric_file: factual_correctness.md
+      reference: >
+        Voyager 1 crossed the heliopause (entered interstellar space) in August
+        2012. NASA officially confirmed the crossing in September 2013 after
+        analyzing plasma wave data. September 2013 is the confirmation date,
+        not the crossing date.
+      context: >
+        FAIL if the answer states September 2013 as the crossing date — that is
+        the planted error. PASS if crossing is August 2012 and confirmation is
+        September 2013. FAIL if both dates are wrong.

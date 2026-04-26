@@ -1,0 +1,32 @@
+id: extract_quotes_happy
+description: >
+  Happy path exercising the extract_quotes tool. The DNA replication page is
+  detail-rich and contains specific mechanistic claims (proofreading, error rate).
+  The agent should search, fetch, extract relevant quotes, then finish with a
+  grounded answer.
+tags: [happy_path, extract_quotes, biology]
+input: "What mechanism does DNA polymerase use to ensure low error rates during replication, and what is the approximate error rate?"
+expected_behavior:
+  hard:
+    - type: stopped_reason
+      value: finish
+    - type: tool_called
+      tool: web_search
+    - type: tool_called
+      tool: fetch_url
+    - type: tool_called
+      tool: extract_quotes
+    - type: tool_called
+      tool: finish
+    - type: citations_were_fetched
+  soft:
+    - type: factual_correctness
+      rubric_file: factual_correctness.md
+      reference: >
+        DNA polymerase uses proofreading to catch errors during replication.
+        Together with mismatch repair, this achieves an error rate of
+        approximately one mistake per billion base pairs.
+      context: >
+        PASS if the answer mentions proofreading by DNA polymerase and gives
+        an error rate around one per billion base pairs. FAIL if no error rate
+        is given or the mechanism is wrong.

@@ -1,0 +1,28 @@
+id: citation_hygiene
+description: >
+  Bug-targeted case - tests whether citations are actually fetched.
+  The agent might cite a URL returned by web_search without calling
+  fetch_url on it. This case uses a narrow question where search returns
+  multiple results but only one or two should be cited.
+  Catches the defect: agent can cite any search-result URL without fetching it.
+tags: [bug, citations]
+input: "What connectivity options does the Acme R1 robot support?"
+expected_behavior:
+  hard:
+    - type: stopped_reason
+      value: finish
+    - type: tool_called
+      tool: finish
+    - type: citations_were_fetched
+    - type: tool_called
+      tool: fetch_url
+    - type: answer_contains
+      substring: "Wi-Fi"
+  soft:
+    - type: citation_quality
+      rubric_file: citation_quality.md
+      context: >
+        The Acme R1 supports Wi-Fi 6, Ethernet, and optional 5G. The answer
+        should state these. Citations should point to acme-r1-specs or
+        acme-r1-spec-imperial — not to unrelated pages like acme-press-q3
+        or acme-safety. Check that cited URLs are actually relevant to the answer.

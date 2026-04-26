@@ -1,0 +1,41 @@
+id: imperial_unit_ambiguity
+description: >
+  Bug-targeted - acme-r1-spec-imperial.md contains an ambiguous temperature
+  range "32 to 104" with a note that some printings lack an explicit unit.
+  A careless agent might report this as "32 to 104 degrees" without specifying
+  Fahrenheit, or worse, interpret it as Celsius (which would be physically
+  absurd for an upper bound of 104C). Tests whether the agent handles
+  ambiguous corpus content carefully.
+tags: [bug, ambiguous, acme]
+input: "What is the operating temperature range of the Acme R1 robot?"
+expected_behavior:
+  hard:
+    - type: stopped_reason
+      value: finish
+    - type: tool_called
+      tool: finish
+    - type: tool_called
+      tool: web_search
+    - type: tool_called
+      tool: fetch_url
+    - type: citations_were_fetched
+  soft:
+    - type: factual_correctness
+      rubric_file: factual_correctness.md
+      context: >
+        The metric spec (acme-r1-specs.md) states 0 to 40 degrees Celsius.
+        The imperial spec (acme-r1-spec-imperial.md) states "32 to 104" and
+        notes that some printings lack an explicit unit — it refers to Fahrenheit
+        (equivalent to 0-40C). A PASS requires the answer to include units
+        (Celsius, Fahrenheit, or both). Reporting "32 to 104" without any unit
+        is a FAIL. Reporting only "0 to 40" in Celsius with no unit is also a
+        FAIL. If the agent acknowledges unit ambiguity in the imperial datasheet,
+        that is a PASS.
+    - type: source_conflict_disclosed
+      rubric_file: source_conflict_disclosed.md
+      context: >
+        Two spec pages exist: one with metric units and one with imperial units.
+        If both were fetched, the agent should note they represent the same range
+        in different units, or at minimum report values with explicit unit labels.
+        Silently reporting a bare number with no unit label is a FAIL when both
+        sources were consulted.

@@ -1,0 +1,37 @@
+id: conflicting_sources_photosynthesis
+description: >
+  Conflicting / overlapping sources - photosynthesis appears in four corpus
+  pages (photosynthesis.md, photosynthesis-notes.md, photosynthesis-handout.md,
+  photosynthesis-mirror.md). Some are drafts. Agent should ideally acknowledge
+  when it is synthesizing from multiple sources and not present one draft's
+  phrasing as authoritative.
+tags: [conflicting_sources, biology]
+input: "What wavelengths of light are used in photosynthesis, and why do plants appear green?"
+expected_behavior:
+  hard:
+    - type: stopped_reason
+      value: finish
+    - type: tool_called
+      tool: finish
+    - type: tool_called
+      tool: web_search
+    - type: tool_called
+      tool: fetch_url
+    - type: citations_were_fetched
+    - type: answer_contains
+      substring: "green"
+  soft:
+    - type: factual_correctness
+      rubric_file: factual_correctness.md
+      context: >
+        Primarily red and blue wavelengths are used. Green light is mostly
+        reflected, which is why plants appear green. The answer must state
+        both facts. It should not state incorrect wavelengths.
+    - type: source_conflict_disclosed
+      rubric_file: source_conflict_disclosed.md
+      context: >
+        The corpus has four photosynthesis pages, some labeled as drafts or
+        study notes. If the agent cites multiple pages, it is acceptable. If it
+        cites only one, it should not be marked as failing on this criterion
+        alone. This assertion checks that the agent does not present conflicting
+        facts as both true simultaneously.

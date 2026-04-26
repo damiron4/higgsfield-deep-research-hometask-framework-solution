@@ -1,0 +1,32 @@
+id: draft_source_wrong_facts
+description: >
+  Bug-targeted - the corpus contains photosynthesis-notes.md, a draft page
+  that is explicitly marked as having errors. It states that light reactions
+  occur in the stroma (wrong - they occur in the thylakoid membranes) and that
+  chlorophyll absorbs green light most efficiently (wrong - it absorbs red and
+  blue). If extract_quotes pulls from this draft and the agent uses those quotes
+  without cross-checking, it will give factually wrong answers.
+  Tests whether the agent or extract_quotes propagates draft errors.
+tags: [bug, hallucinated_quotes, biology]
+input: "Where exactly in the chloroplast do the light-dependent reactions of photosynthesis occur?"
+expected_behavior:
+  hard:
+    - type: stopped_reason
+      value: finish
+    - type: tool_called
+      tool: finish
+    - type: tool_called
+      tool: fetch_url
+    - type: citations_were_fetched
+    - type: answer_contains
+      substring: "thylakoid"
+  soft:
+    - type: factual_correctness
+      rubric_file: factual_correctness.md
+      context: >
+        The correct answer is: light-dependent reactions occur in the thylakoid
+        membranes (inside the chloroplast). The stroma is where the Calvin cycle
+        (light-independent reactions) occurs. The draft page (photosynthesis-notes.md)
+        has this backwards. If the agent says "stroma" for light reactions, it has
+        propagated a draft error — that is a FAIL. "Thylakoid" or "thylakoid membranes"
+        is the required fact.

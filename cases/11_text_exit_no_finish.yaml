@@ -1,0 +1,13 @@
+id: text_exit_no_finish
+description: >
+  Bug-targeted - tests the code path where the agent returns a text-only
+  response with no tool call, causing the loop to break with
+  stopped_reason="max_steps" even though an answer was produced.
+  This means citations=[]. A very simple question might trigger this
+  if the model decides it already knows the answer.
+tags: [bug, stopped_reason]
+input: "Just say hello and nothing else. Do not use any tools."
+expected_behavior:
+  hard:
+    - type: stopped_reason
+      value: max_steps

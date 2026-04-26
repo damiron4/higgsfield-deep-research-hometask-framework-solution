@@ -1,0 +1,25 @@
+id: broken_page_bug
+description: >
+  Bug-targeted - the corpus contains a page titled "Voyager 1 Heliopause
+  Crossing - Complete Guide" (broken-page.md) that appears in search results
+  but contains only a stub: "[This article is being rewritten. Content coming
+  soon.]". If the agent fetches this page and then answers from it (possibly
+  via extract_quotes returning nothing useful), it should gracefully fall back
+  to other sources rather than hallucinating or returning an empty answer.
+tags: [bug, broken_page, space]
+input: "According to the complete guide, when did Voyager 1 cross the heliopause?"
+expected_behavior:
+  hard:
+    - type: citations_were_fetched
+  soft:
+    - type: factual_correctness
+      rubric_file: factual_correctness.md
+      reference: >
+        Voyager 1 crossed the heliopause in 2012.
+      context: >
+        The "Complete Guide" page is a stub with no real content; the agent
+        must fall back to other sources. Judge ONLY on the final answer text —
+        do NOT require corpus URLs in prose (citations checked by hard assertions).
+        PASS if the answer states 2012, or acknowledges the guide was empty but
+        found the year elsewhere. FAIL if the answer gives a wrong year, or
+        claims it cannot answer when 2012 is present in the answer text.
